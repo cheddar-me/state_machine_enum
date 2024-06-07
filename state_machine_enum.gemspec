@@ -5,8 +5,8 @@ require_relative "lib/state_machine_enum/version"
 Gem::Specification.new do |spec|
   spec.name = "state_machine_enum"
   spec.version = StateMachineEnum::VERSION
-  spec.authors = ["Stanislav Katkov"]
-  spec.email = ["skatkov@cheddar.me"]
+  spec.authors = ["Julik Tarkhanov", "Sebastian van Hesteren", "Stanislav Katkov"]
+  spec.email = ["julik@cheddar.me", "sebastian@cheddar.me", "skatkov@cheddar.me"]
 
   spec.summary = "Define possible state transitions for a field"
   spec.description = "Concern that makes it easy to define and enforce possibe state transitions for a field/object"
