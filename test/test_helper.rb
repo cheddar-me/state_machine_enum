@@ -11,10 +11,10 @@ require "active_record"
 class ActiveSupport::TestCase
   def setup
     ActiveRecord::Migration.verbose = false
-    ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
+    ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
     ActiveRecord::Schema.define do
       create_table :users, force: true do |t|
-        t.string :state, default: 'registered'
+        t.string :state, default: "registered"
       end
     end
   end
