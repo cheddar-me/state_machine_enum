@@ -40,10 +40,11 @@ class TestStateMachineEnum < ActiveSupport::TestCase
     assert_nil u.ensure_state_may_transition_to!(:banned)
 
     assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!("active") }
-    assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!(:active) }
+    error = assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!(:active) }
+    assert_equal("state already is \"active\"", error.message)
 
-    # TODO: This method will not actually check if state can transition to the target state, it only verifies that this is not a current state.
-    # assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!(:registered) }
+    error = assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!(:registered) }
+    assert_equal("state may not transition from \"active\" to :registered", error.message)
   end
 
   def test_ensure_state_one_of!

@@ -114,6 +114,7 @@ module StateMachineEnum
         define_method(:"ensure_#{attribute_name}_may_transition_to!") do |next_state|
           val = self[attribute_name]
           raise InvalidState, "#{attribute_name} already is #{val.inspect}" if next_state.to_s == val
+          raise InvalidState, "#{attribute_name} may not transition from #{val.inspect} to #{next_state.inspect}" unless collector.may_transition?(val, next_state)
         end
 
         define_method(:"#{attribute_name}_may_transition_to?") do |next_state|
