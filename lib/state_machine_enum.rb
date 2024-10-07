@@ -13,16 +13,13 @@ require "active_support/concern"
 #     states.permit_transition(:created, :rejected)
 #     states.permit_transition(:approved_pending_settlement, :settled)
 #   end
-
 module StateMachineEnum
   extend ActiveSupport::Concern
 
+  # This keeps track of the states and rules we allow.
   class StatesCollector
-    attr_reader :states
-    attr_reader :after_commit_hooks
-    attr_reader :common_after_commit_hooks
-    attr_reader :after_attribute_write_hooks
-    attr_reader :common_after_write_hooks
+    attr_reader :states, :after_commit_hooks, :common_after_commit_hooks,
+      :after_attribute_write_hooks, :common_after_write_hooks
 
     def initialize
       @transitions = Set.new
@@ -33,38 +30,42 @@ module StateMachineEnum
       @common_after_write_hooks = []
     end
 
+    # Add a 'rule' that allows a transition in a single direction
     def permit_transition(from, to)
       @states << from.to_s << to.to_s
       @transitions << [from.to_s, to.to_s]
     end
 
-    def may_transition?(from, to)
-      @transitions.include?([from.to_s, to.to_s])
-    end
-
+    # Runs after the attributes have changed, but before the state is saved
     def after_inline_transition_to(target_state, &blk)
       @after_attribute_write_hooks[target_state.to_s] ||= []
       @after_attribute_write_hooks[target_state.to_s] << blk.to_proc
     end
 
+    # Will run after the specified transition has comitted
     def after_committed_transition_to(target_state, &blk)
       @after_commit_hooks[target_state.to_s] ||= []
       @after_commit_hooks[target_state.to_s] << blk.to_proc
     end
 
+    # A generic block that will run together with every committed transition.
     def after_any_committed_transition(&blk)
       @common_after_commit_hooks << blk.to_proc
     end
 
-    def validate(model, attribute_name)
+    def _validate(model, attribute_name)
       return unless model.persisted?
 
       was = model.attribute_was(attribute_name)
       is = model[attribute_name]
 
-      unless was == is || @transitions.include?([was, is])
-        model.errors.add(attribute_name, "Invalid transition from #{was} to #{is}")
-      end
+      return if (was == is) || @transitions.include?([was, is])
+
+      model.errors.add(attribute_name, "Invalid transition from #{was} to #{is}")
+    end
+
+    def _may_transition?(from, to)
+      @transitions.include?([from.to_s, to.to_s])
     end
   end
 
@@ -82,12 +83,13 @@ module StateMachineEnum
 
         # Define validations for transitions
         validates attribute_name, presence: true
-        validate { |model| collector.validate(model, attribute_name) }
+        validate { |model| collector._validate(model, attribute_name) }
 
-        # Define inline hooks
+        # Define after attribute change (before save) hooks
         before_save do |model|
           _value_was, value_has_become = model.changes[attribute_name]
           next unless value_has_become
+
           hook_procs = collector.after_attribute_write_hooks[value_has_become].to_a + collector.common_after_write_hooks.to_a
           hook_procs.each do |hook_proc|
             hook_proc.call(model)
@@ -98,29 +100,34 @@ module StateMachineEnum
         after_commit do |model|
           _value_was, value_has_become = model.previous_changes[attribute_name]
           next unless value_has_become
+
           hook_procs = collector.after_commit_hooks[value_has_become].to_a + collector.common_after_commit_hooks.to_a
           hook_procs.each do |hook_proc|
             hook_proc.call(model)
           end
         end
 
-        # Define the check methods
+        # Define the ensure methods
         define_method(:"ensure_#{attribute_name}_one_of!") do |*allowed_states|
           val = self[attribute_name]
           return if Set.new(allowed_states.map(&:to_s)).include?(val)
+
           raise InvalidState, "#{attribute_name} must be one of #{allowed_states.inspect} but was #{val.inspect}"
         end
 
         define_method(:"ensure_#{attribute_name}_may_transition_to!") do |next_state|
           val = self[attribute_name]
           raise InvalidState, "#{attribute_name} already is #{val.inspect}" if next_state.to_s == val
-          raise InvalidState, "#{attribute_name} may not transition from #{val.inspect} to #{next_state.inspect}" unless collector.may_transition?(val, next_state)
+          return if collector._may_transition?(val, next_state)
+
+          raise InvalidState, "#{attribute_name} may not transition from #{val.inspect} to #{next_state.inspect}"
         end
 
         define_method(:"#{attribute_name}_may_transition_to?") do |next_state|
           val = self[attribute_name]
           return false if val == next_state.to_s
-          collector.may_transition?(val, next_state)
+
+          collector._may_transition?(val, next_state)
         end
       end
     end
