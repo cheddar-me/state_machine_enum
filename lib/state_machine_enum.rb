@@ -13,10 +13,10 @@ require "active_support/concern"
 #     states.permit_transition(:created, :rejected)
 #     states.permit_transition(:approved_pending_settlement, :settled)
 #   end
-
 module StateMachineEnum
   extend ActiveSupport::Concern
 
+  # This keeps track of the states and rules we allow.
   class StatesCollector
     attr_reader :states, :after_commit_hooks, :common_after_commit_hooks,
       :after_attribute_write_hooks, :common_after_write_hooks
@@ -30,13 +30,10 @@ module StateMachineEnum
       @common_after_write_hooks = []
     end
 
+    # Add a 'rule' that allows a transition in a single direction
     def permit_transition(from, to)
       @states << from.to_s << to.to_s
       @transitions << [from.to_s, to.to_s]
-    end
-
-    def may_transition?(from, to)
-      @transitions.include?([from.to_s, to.to_s])
     end
 
     # Runs after the attributes have changed, but before the state is saved
@@ -56,7 +53,7 @@ module StateMachineEnum
       @common_after_commit_hooks << blk.to_proc
     end
 
-    def validate(model, attribute_name)
+    def _validate(model, attribute_name)
       return unless model.persisted?
 
       was = model.attribute_was(attribute_name)
@@ -65,6 +62,10 @@ module StateMachineEnum
       return if (was == is) || @transitions.include?([was, is])
 
       model.errors.add(attribute_name, "Invalid transition from #{was} to #{is}")
+    end
+
+    def _may_transition?(from, to)
+      @transitions.include?([from.to_s, to.to_s])
     end
   end
 
@@ -82,7 +83,7 @@ module StateMachineEnum
 
         # Define validations for transitions
         validates attribute_name, presence: true
-        validate { |model| collector.validate(model, attribute_name) }
+        validate { |model| collector._validate(model, attribute_name) }
 
         # Define after attribute change (before save) hooks
         before_save do |model|
@@ -117,7 +118,7 @@ module StateMachineEnum
         define_method(:"ensure_#{attribute_name}_may_transition_to!") do |next_state|
           val = self[attribute_name]
           raise InvalidState, "#{attribute_name} already is #{val.inspect}" if next_state.to_s == val
-          return if collector.may_transition?(val, next_state)
+          return if collector._may_transition?(val, next_state)
 
           raise InvalidState, "#{attribute_name} may not transition from #{val.inspect} to #{next_state.inspect}"
         end
@@ -126,7 +127,7 @@ module StateMachineEnum
           val = self[attribute_name]
           return false if val == next_state.to_s
 
-          collector.may_transition?(val, next_state)
+          collector._may_transition?(val, next_state)
         end
       end
     end
