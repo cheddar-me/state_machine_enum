@@ -18,11 +18,11 @@ end
 
 Install the gem and add it to the application's Gemfile by executing:
 
-    $ bundle add state_machine_enum
+  $ bundle add state_machine_enum
 
 If bundler is not being used to manage dependencies, install the gem by executing:
 
-    $ gem install state_machine_enum
+  $ gem install state_machine_enum
 
 ## Usage
 
@@ -33,10 +33,10 @@ class User < ApplicationRecord
   include StateMachineEnum
 
   state_machine_enum :state, prefix: :state do |s|
-    s.permit_transition(:registered, :active)
-    s.permit_transition(:active, :banned)
-    s.permit_transition(:banned, :active)
-    s.permit_transition(:active, :deleted)
+  s.permit_transition(:registered, :active)
+  s.permit_transition(:active, :banned)
+  s.permit_transition(:banned, :active)
+  s.permit_transition(:active, :deleted)
   end
 end
 
@@ -69,10 +69,10 @@ For example the state updates to :registered, but before the model is saved
 
 ```ruby
 state_machine_enum :state, prefix: "state" do |s|
-    s.permit_transition(:registered, :active)
-    s.after_inline_transition_to(:active) do |model|
-        model.another_attr = Time.now.utc
-    end
+  s.permit_transition(:registered, :active)
+  s.after_inline_transition_to(:active) do |model|
+    model.another_attr = Time.now.utc
+  end
 end
 ```
 
@@ -85,10 +85,10 @@ updated to :registered
 
 ```ruby
 state_machine_enum :state, prefix: "state" do |s|
-    s.permit_transition(:registered, :active)
-    s.after_committed_transition_to(:active) do |model|
-        model.send_notification!
-    end
+  s.permit_transition(:registered, :active)
+  s.after_committed_transition_to(:active) do |model|
+    model.send_notification!
+  end
 end
 ```
 
@@ -98,11 +98,11 @@ For example if you want to do something after any state update has commited.
 
 ```ruby
 state_machine_enum :state, prefix: "state" do |s|
-    s.permit_transition(:registered, :active)
-    s.permit_transition(:active, :suspended)
-    s.after_any_committed_transition_to do |model|
-        log_changes!
-    end
+  s.permit_transition(:registered, :active)
+  s.permit_transition(:active, :suspended)
+  s.after_any_committed_transition_to do |model|
+    log_changes!
+  end
 end
 ```
 
@@ -123,7 +123,7 @@ Predicate to check if a transition is possible with the rules we've set.
 
 ```ruby
 state_machine_enum :state, prefix: "state" do |s|
-    s.permit_transition(:registered, :active)
+  s.permit_transition(:registered, :active)
 end
 
 state_may_transition_to?(:active) # => true
