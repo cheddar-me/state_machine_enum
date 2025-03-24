@@ -39,11 +39,17 @@ class TestStateMachineEnum < ActiveSupport::TestCase
 
     assert_nil u.ensure_state_may_transition_to!(:banned)
 
-    assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!("active") }
-    error = assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!(:active) }
-    assert_equal("state already is \"active\"", error.message)
+    assert_raises(StateMachineEnum::InvalidTransition) { u.ensure_state_may_transition_to!("active") }
 
-    error = assert_raises(StateMachineEnum::InvalidState) { u.ensure_state_may_transition_to!(:registered) }
+    error = assert_raises(StateMachineEnum::InvalidTransition) { u.ensure_state_may_transition_to!(:active) }
+
+    assert_equal("state already is \"active\"", error.message)
+    assert_equal("state", error.attribute_name)
+    assert_equal("active", error.from_state)
+    assert_equal("active", error.to_state)
+    assert error.already_in_target_state?
+
+    error = assert_raises(StateMachineEnum::InvalidTransition) { u.ensure_state_may_transition_to!(:registered) }
     assert_equal("state may not transition from \"active\" to :registered", error.message)
   end
 

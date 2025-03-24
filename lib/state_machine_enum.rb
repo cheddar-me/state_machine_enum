@@ -72,6 +72,21 @@ module StateMachineEnum
   class InvalidState < StandardError
   end
 
+  class InvalidTransition < InvalidState
+    attr_reader :attribute_name, :from_state, :to_state
+
+    def already_in_target_state?
+      @from_state == @to_state
+    end
+
+    def initialize(attribute_name, attempted_transition_from_state, attempted_transition_to_state, *args_for_super)
+      @attribute_name = attribute_name.to_s
+      @from_state = attempted_transition_from_state.to_s
+      @to_state = attempted_transition_to_state.to_s
+      super(*args_for_super)
+    end
+  end
+
   class_methods do
     def state_machine_enum(attribute_name, **options_for_enum)
       # Collect the states
@@ -117,10 +132,10 @@ module StateMachineEnum
 
         define_method(:"ensure_#{attribute_name}_may_transition_to!") do |next_state|
           val = self[attribute_name]
-          raise InvalidState, "#{attribute_name} already is #{val.inspect}" if next_state.to_s == val
+          raise InvalidTransition.new(attribute_name, val, next_state, "#{attribute_name} already is #{val.inspect}") if next_state.to_s == val
           return if collector._may_transition?(val, next_state)
 
-          raise InvalidState, "#{attribute_name} may not transition from #{val.inspect} to #{next_state.inspect}"
+          raise InvalidTransition.new(attribute_name, val, next_state, "#{attribute_name} may not transition from #{val.inspect} to #{next_state.inspect}")
         end
 
         define_method(:"#{attribute_name}_may_transition_to?") do |next_state|

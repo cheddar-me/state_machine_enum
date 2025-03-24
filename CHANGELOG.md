@@ -1,31 +1,28 @@
-# Changelog
-All notable changes to this project will be documented in this file.
+## 0.1.4
 
-This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+* Raise `InvalidTransition` which is a subclass of `InvalidState`. That exception contains the following properties which can be used:
+  * `attribute_name` is the name of the enum attribute
+  * `from_state` is the state the transition was attempted from
+  * `to_state` is the state the transition was going to
+  * `already_in_target_state?` is `true` if a repeated transition was attempted
+* Some more code styling
+* Relax dependencies so that Bundler does not complain on Rails 8.x apps
 
 ## 0.1.3
 
-### Changed
-
-- Added more documentation and improvements to the readme
-- Little code styling
+* Added more documentation and improvements to the readme
+* Little code styling
 
 ## 0.1.2
 
-### Added
-
-- basic tests for a library
-
-### Changed
-
-- #ensure_<attribute>_may_transition_to! method now actually verifies that an attribute can transition to a new state.
+* Add basic tests
+* `#ensure_<attribute>_may_transition_to!` now actually verifies that an attribute can transition to the new state.
 
 ## 0.1.1
 
-### Added
 
-- Provide real authorts of this gem.
+* Provide real authors.
 
 ## 0.1.0
 
-- Initial release
+* Initial release
